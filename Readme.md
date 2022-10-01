@@ -15,8 +15,12 @@ So this application was created.
 
 <br>
 
-![screenshot](screenshot/1.png)
+![screenshot](screenshot/01.webp)
 
 <br>
 
-![screenshot](screenshot/1.jpg)
+![screenshot](screenshot/02.webp)
+
+<br>
+
+![screenshot](screenshot/03.webp)
