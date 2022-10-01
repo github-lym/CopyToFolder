@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Windows.Forms;
+using System.Linq;
 
 namespace FileToFolder
 {
@@ -35,20 +34,36 @@ namespace FileToFolder
             this.progressBar = progressBar;
         }
 
+        #region 前置處理        
+        public void Run()
+        {
+            DirectoryInfo fromFolder = new DirectoryInfo(arg.FromPath);
+            //抓取來源資料夾底下符合條件所有檔案            
+            if (arg.ModifiedTime)
+                allFiles = fromFolder.GetFiles("*").Where(w => w.LastWriteTime.Date >= arg.StartDate && w.LastWriteTime.Date <= arg.EndDate).ToArray();
+            else
+                allFiles = fromFolder.GetFiles("*").Where(w => w.LastAccessTime.Date >= arg.StartDate && w.LastAccessTime.Date <= arg.EndDate).ToArray();
+
+            if (arg.Move)
+                MoveFiles();
+            else
+                CopyFiles();
+        }
+        #endregion
+
         #region 移動檔案
 
         public void MoveFiles()
         {
-            DirectoryInfo fromFolder = new DirectoryInfo(arg.FromPath);
-            allFiles = fromFolder.GetFiles("*");  //抓取來源資料夾底下所有檔案
-
             int num = 0;
             int total = 0;
             progressBar.Minimum = num;
             progressBar.Maximum = allFiles.Length;
             progressBar.Enabled = true;
             progressBar.Visible = true;
+
             logHandler.log.WriteLine("以移動的方式處理");
+
             try
             {
                 switch (flag)
@@ -56,38 +71,32 @@ namespace FileToFolder
                     case 0:
                         foreach (FileInfo file in allFiles)
                         {
-                            fileTime = File.GetLastWriteTime(file.FullName).Date;
-                            if (fileTime >= arg.StartDate && fileTime < arg.EndDate)
-                            {
-                                destinationFile = Path.Combine(Path.Combine(arg.ToPath, fileTime.ToString("yyyyMM")), file.Name);
-                                if (!File.Exists(destinationFile))
-                                {
-                                    File.Move(file.FullName, destinationFile);
-                                    num++;
-                                }
-                                else
-                                    logHandler.log.WriteLine("******** " + file.Name + "已經存在");
+                            fileTime = file.LastWriteTime;
+                            destinationFile = Path.Combine(Path.Combine(arg.ToPath, fileTime.ToString("yyyyMM")), file.Name);
+                            if (!File.Exists(destinationFile))
+                            {                                
+                                File.Move(file.FullName, destinationFile);
+                                num++;
                             }
+                            else
+                                logHandler.log.WriteLine("******** " + file.Name + "已經存在");
+
                             progressBar.Value = ++total;
                         }
-
                         break;
 
                     case 1:
                         foreach (FileInfo file in allFiles)
                         {
-                            fileTime = File.GetLastAccessTime(file.FullName).Date;
-                            if (fileTime >= arg.StartDate && fileTime < arg.EndDate)
-                            {
-                                destinationFile = Path.Combine(Path.Combine(arg.ToPath, fileTime.ToString("yyyyMM")), file.Name);
-                                if (!File.Exists(destinationFile))
-                                {
-                                    File.Move(file.FullName, destinationFile);
-                                    num++;
-                                }
-                                else
-                                    logHandler.log.WriteLine("******** " + file.Name + "已經存在");
+                            fileTime = file.LastAccessTime;
+                            destinationFile = Path.Combine(Path.Combine(arg.ToPath, fileTime.ToString("yyyyMM")), file.Name);
+                            if (!File.Exists(destinationFile))
+                            {                                
+                                File.Move(file.FullName, destinationFile);
+                                num++;
                             }
+                            else
+                                logHandler.log.WriteLine("******** " + file.Name + "已經存在");
                             progressBar.Value = ++total;
                         }
                         break;
@@ -95,18 +104,15 @@ namespace FileToFolder
                     case 2:
                         foreach (FileInfo file in allFiles)
                         {
-                            fileTime = File.GetLastWriteTime(file.FullName).Date;
-                            if (fileTime >= arg.StartDate && fileTime < arg.EndDate)
+
+                            destinationFile = Path.Combine(arg.ToPath, file.Name);
+                            if (!File.Exists(destinationFile))
                             {
-                                destinationFile = Path.Combine(arg.ToPath, file.Name);
-                                if (!File.Exists(destinationFile))
-                                {
-                                    File.Move(file.FullName, destinationFile);
-                                    num++;
-                                }
-                                else
-                                    logHandler.log.WriteLine("******** " + file.Name + "已經存在");
+                                File.Move(file.FullName, destinationFile);
+                                num++;
                             }
+                            else
+                                logHandler.log.WriteLine("******** " + file.Name + "已經存在");
                             progressBar.Value = ++total;
                         }
                         break;
@@ -114,18 +120,14 @@ namespace FileToFolder
                     case 3:
                         foreach (FileInfo file in allFiles)
                         {
-                            fileTime = File.GetLastAccessTime(file.FullName).Date;
                             destinationFile = Path.Combine(arg.ToPath, file.Name);
-                            if (fileTime >= arg.StartDate && fileTime < arg.EndDate)
+                            if (!File.Exists(destinationFile))
                             {
-                                if (!File.Exists(destinationFile))
-                                {
-                                    File.Move(file.FullName, destinationFile);
-                                    num++;
-                                }
-                                else
-                                    logHandler.log.WriteLine("******** " + file.Name + "已經存在");
+                                File.Move(file.FullName, destinationFile);
+                                num++;
                             }
+                            else
+                                logHandler.log.WriteLine("******** " + file.Name + "已經存在");
                             progressBar.Value = ++total;
                         }
                         break;
@@ -153,9 +155,6 @@ namespace FileToFolder
 
         public void CopyFiles()
         {
-            DirectoryInfo fromFolder = new DirectoryInfo(arg.FromPath);
-            allFiles = fromFolder.GetFiles("*");  //抓取來源資料夾底下所有檔案
-
             int num = 0;
             int total = 0;
             progressBar.Minimum = num;
@@ -163,6 +162,7 @@ namespace FileToFolder
             progressBar.Enabled = true;
             progressBar.Visible = true;
             logHandler.log.WriteLine("以移動的方式處理");
+
             try
             {
                 switch (flag)
@@ -170,28 +170,21 @@ namespace FileToFolder
                     case 0:
                         foreach (FileInfo file in allFiles)
                         {
+                            fileTime = file.LastWriteTime;
                             destinationFile = Path.Combine(Path.Combine(arg.ToPath, fileTime.ToString("yyyyMM")), file.Name);
-                            fileTime = File.GetLastWriteTime(file.FullName).Date;
-                            if (fileTime >= arg.StartDate && fileTime < arg.EndDate)
-                            {
-                                File.Copy(file.FullName, destinationFile, true);
-                                num++;
-                            }
+                            File.Copy(file.FullName, destinationFile, true);
+                            num++;
                             progressBar.Value = ++total;
                         }
-
                         break;
 
                     case 1:
                         foreach (FileInfo file in allFiles)
                         {
-                            fileTime = File.GetLastAccessTime(file.FullName).Date;
-                            if (fileTime >= arg.StartDate && fileTime < arg.EndDate)
-                            {
-                                destinationFile = Path.Combine(Path.Combine(arg.ToPath, fileTime.ToString("yyyyMM")), file.Name);
-                                File.Copy(file.FullName, destinationFile, true);
-                                num++;
-                            }
+                            fileTime = file.LastAccessTime;
+                            destinationFile = Path.Combine(Path.Combine(arg.ToPath, fileTime.ToString("yyyyMM")), file.Name);
+                            File.Copy(file.FullName, destinationFile, true);
+                            num++;
                             progressBar.Value = ++total;
                         }
                         break;
@@ -199,13 +192,9 @@ namespace FileToFolder
                     case 2:
                         foreach (FileInfo file in allFiles)
                         {
-                            fileTime = File.GetLastWriteTime(file.FullName).Date;
-                            if (fileTime >= arg.StartDate && fileTime < arg.EndDate)
-                            {
-                                destinationFile = Path.Combine(arg.ToPath, file.Name);
-                                File.Copy(file.FullName, destinationFile, true);
-                                num++;
-                            }
+                            destinationFile = Path.Combine(arg.ToPath, file.Name);
+                            File.Copy(file.FullName, destinationFile, true);
+                            num++;
                             progressBar.Value = ++total;
                         }
                         break;
@@ -213,13 +202,9 @@ namespace FileToFolder
                     case 3:
                         foreach (FileInfo file in allFiles)
                         {
-                            fileTime = File.GetLastAccessTime(file.FullName).Date;
                             destinationFile = Path.Combine(arg.ToPath, file.Name);
-                            if (fileTime >= arg.StartDate && fileTime < arg.EndDate)
-                            {
-                                File.Copy(file.FullName, destinationFile, true);
-                                num++;
-                            }
+                            File.Copy(file.FullName, destinationFile, true);
+                            num++;
                             progressBar.Value = ++total;
                         }
                         break;

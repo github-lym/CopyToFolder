@@ -126,15 +126,18 @@ namespace FileToFolder
             //progressBar.Enabled = true;
             //progressBar.Visible = true;
 
-            if (optionArg.Move)
-                work.MoveFiles();
-            else
-                work.CopyFiles();
+            work.Run();
+
+            //if (optionArg.Move)
+            //    work.MoveFiles();
+            //else
+            //    work.CopyFiles();
 
 
             foreach (Control c in this.Controls)
                 c.Enabled = true;
             //progressBar.Visible = false;
+            //RunningTextBox.Text = string.Empty;
 
             #region 刪除空資料夾
 
