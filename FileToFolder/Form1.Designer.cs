@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
-            this.progressBar = new System.Windows.Forms.ProgressBar();
+            this.NumProgressBar = new System.Windows.Forms.ProgressBar();
             this.endDatePicker = new System.Windows.Forms.DateTimePicker();
             this.startDatePicker = new System.Windows.Forms.DateTimePicker();
             this.fromFolderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog();
@@ -52,18 +52,19 @@
             this.moveRadioButton = new System.Windows.Forms.RadioButton();
             this.subFolderCheckBox = new System.Windows.Forms.CheckBox();
             this.goButton = new System.Windows.Forms.Button();
+            this.SizeProgressBar = new System.Windows.Forms.ProgressBar();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
             this.groupBox4.SuspendLayout();
             this.SuspendLayout();
             // 
-            // progressBar
+            // NumProgressBar
             // 
-            this.progressBar.Location = new System.Drawing.Point(12, 286);
-            this.progressBar.Name = "progressBar";
-            this.progressBar.Size = new System.Drawing.Size(480, 23);
-            this.progressBar.TabIndex = 0;
+            this.NumProgressBar.Location = new System.Drawing.Point(12, 286);
+            this.NumProgressBar.Name = "NumProgressBar";
+            this.NumProgressBar.Size = new System.Drawing.Size(480, 17);
+            this.NumProgressBar.TabIndex = 0;
             // 
             // endDatePicker
             // 
@@ -277,18 +278,26 @@
             this.goButton.UseVisualStyleBackColor = true;
             this.goButton.Click += new System.EventHandler(this.goButton_Click);
             // 
+            // SizeProgressBar
+            // 
+            this.SizeProgressBar.Location = new System.Drawing.Point(12, 309);
+            this.SizeProgressBar.Name = "SizeProgressBar";
+            this.SizeProgressBar.Size = new System.Drawing.Size(480, 17);
+            this.SizeProgressBar.TabIndex = 12;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(501, 315);
+            this.ClientSize = new System.Drawing.Size(501, 334);
+            this.Controls.Add(this.SizeProgressBar);
             this.Controls.Add(this.goButton);
             this.Controls.Add(this.subFolderCheckBox);
             this.Controls.Add(this.groupBox4);
             this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
-            this.Controls.Add(this.progressBar);
+            this.Controls.Add(this.NumProgressBar);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "Form1";
             this.Text = "Form1";
@@ -329,7 +338,8 @@
         private System.Windows.Forms.RadioButton moveRadioButton;
         private System.Windows.Forms.CheckBox subFolderCheckBox;
         private System.Windows.Forms.Button goButton;
-        private System.Windows.Forms.ProgressBar progressBar;
+        private System.Windows.Forms.ProgressBar NumProgressBar;
+        private System.Windows.Forms.ProgressBar SizeProgressBar;
     }
 }
 

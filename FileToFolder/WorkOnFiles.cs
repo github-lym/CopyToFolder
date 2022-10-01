@@ -11,9 +11,13 @@ namespace FileToFolder
         private DateTime fileTime;
         private int flag;
         private OptionsArg arg;
-        private ProgressBar progressBar;
+        private ProgressBar numProgressBar;
+        private ProgressBar sizeProgressBar;
         private LogHandler logHandler;
         private string destinationFile;
+
+        public delegate void ProgressChangeDelegate(double Percentage, ref bool Cancel);
+        public delegate void Completedelegate();
 
         public WorkOnFiles(OptionsArg arg)
         {
@@ -26,17 +30,76 @@ namespace FileToFolder
                 flag = 2;
             else if (!arg.ModifiedTime && !arg.SubFolder)
                 flag = 3;
-            logHandler = new LogHandler(arg);
         }
 
-        public void ProgressBarControl(ProgressBar progressBar)
+        public void NumProgressBarControl(ProgressBar nprogressBar)
         {
-            this.progressBar = progressBar;
+            this.numProgressBar = nprogressBar;
+        }
+        public void SizeProgressBarControl(ProgressBar sprogressBar)
+        {
+            this.sizeProgressBar = sprogressBar;
+        }
+
+        class CustomFileCopier
+        {
+            public CustomFileCopier(string Source, string Dest, ProgressBar PBar)
+            {
+                this.SourceFilePath = Source;
+                this.DestFilePath = Dest;
+                this.PBar = PBar;
+
+                OnProgressChanged += delegate { };
+                OnComplete += delegate { };
+            }
+
+            public void Copy()
+            {
+                byte[] buffer = new byte[1024 * 1024]; // 1MB buffer
+                bool cancelFlag = false;
+                PBar.Visible = true;
+                using (FileStream source = new FileStream(SourceFilePath, FileMode.Open, FileAccess.Read))
+                {
+                    long fileLength = source.Length;
+                    using (FileStream dest = new FileStream(DestFilePath, FileMode.Create, FileAccess.Write))
+                    {
+                        long totalBytes = 0;
+                        int currentBlockSize = 0;
+                        while ((currentBlockSize = source.Read(buffer, 0, buffer.Length)) > 0)
+                        {
+                            totalBytes += currentBlockSize;
+                            double percentage = (double)totalBytes * 100.0 / fileLength;
+
+                            dest.Write(buffer, 0, currentBlockSize);
+                            cancelFlag = false;
+                            OnProgressChanged(percentage, ref cancelFlag);
+                            PBar.Value = (int)percentage;
+                            if (cancelFlag == true)
+                            {
+                                // Delete dest file here
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                OnComplete();
+            }
+
+            public string SourceFilePath { get; set; }
+            public string DestFilePath { get; set; }
+            public ProgressBar PBar { get; set; }
+
+
+            public event ProgressChangeDelegate OnProgressChanged;
+            public event Completedelegate OnComplete;
         }
 
         #region 前置處理        
         public void Run()
         {
+            logHandler = new LogHandler(arg);
+
             DirectoryInfo fromFolder = new DirectoryInfo(arg.FromPath);
             //抓取來源資料夾底下符合條件所有檔案            
             if (arg.ModifiedTime)
@@ -44,6 +107,7 @@ namespace FileToFolder
             else
                 allFiles = fromFolder.GetFiles("*").Where(w => w.LastAccessTime.Date >= arg.StartDate && w.LastAccessTime.Date <= arg.EndDate).ToArray();
 
+            numProgressBar.Visible = true;
             if (arg.Move)
                 MoveFiles();
             else
@@ -57,11 +121,9 @@ namespace FileToFolder
         {
             int num = 0;
             int total = 0;
-            progressBar.Minimum = num;
-            progressBar.Maximum = allFiles.Length;
-            progressBar.Enabled = true;
-            progressBar.Visible = true;
-
+            numProgressBar.Minimum = num;
+            numProgressBar.Maximum = allFiles.Length;
+            numProgressBar.Enabled = true;
             logHandler.log.WriteLine("以移動的方式處理");
 
             try
@@ -74,14 +136,17 @@ namespace FileToFolder
                             fileTime = file.LastWriteTime;
                             destinationFile = Path.Combine(Path.Combine(arg.ToPath, fileTime.ToString("yyyyMM")), file.Name);
                             if (!File.Exists(destinationFile))
-                            {                                
-                                File.Move(file.FullName, destinationFile);
+                            {
+                                //File.Move(file.FullName, destinationFile);
+                                var cfc = new CustomFileCopier(file.FullName, destinationFile, sizeProgressBar);
+                                cfc.Copy();
+                                File.Delete(file.FullName);
                                 num++;
                             }
                             else
                                 logHandler.log.WriteLine("******** " + file.Name + "已經存在");
 
-                            progressBar.Value = ++total;
+                            numProgressBar.Value = ++total;
                         }
                         break;
 
@@ -91,44 +156,35 @@ namespace FileToFolder
                             fileTime = file.LastAccessTime;
                             destinationFile = Path.Combine(Path.Combine(arg.ToPath, fileTime.ToString("yyyyMM")), file.Name);
                             if (!File.Exists(destinationFile))
-                            {                                
-                                File.Move(file.FullName, destinationFile);
+                            {
+                                //File.Move(file.FullName, destinationFile);
+                                var cfc = new CustomFileCopier(file.FullName, destinationFile, sizeProgressBar);
+                                cfc.Copy();
+                                File.Delete(file.FullName);
                                 num++;
                             }
                             else
                                 logHandler.log.WriteLine("******** " + file.Name + "已經存在");
-                            progressBar.Value = ++total;
+                            numProgressBar.Value = ++total;
                         }
                         break;
 
                     case 2:
-                        foreach (FileInfo file in allFiles)
-                        {
-
-                            destinationFile = Path.Combine(arg.ToPath, file.Name);
-                            if (!File.Exists(destinationFile))
-                            {
-                                File.Move(file.FullName, destinationFile);
-                                num++;
-                            }
-                            else
-                                logHandler.log.WriteLine("******** " + file.Name + "已經存在");
-                            progressBar.Value = ++total;
-                        }
-                        break;
-
                     case 3:
                         foreach (FileInfo file in allFiles)
                         {
                             destinationFile = Path.Combine(arg.ToPath, file.Name);
                             if (!File.Exists(destinationFile))
                             {
-                                File.Move(file.FullName, destinationFile);
+                                //File.Move(file.FullName, destinationFile);
+                                var cfc = new CustomFileCopier(file.FullName, destinationFile, sizeProgressBar);
+                                cfc.Copy();
+                                File.Delete(file.FullName);
                                 num++;
                             }
                             else
                                 logHandler.log.WriteLine("******** " + file.Name + "已經存在");
-                            progressBar.Value = ++total;
+                            numProgressBar.Value = ++total;
                         }
                         break;
 
@@ -143,7 +199,7 @@ namespace FileToFolder
             }
             finally
             {
-                progressBar.Value = progressBar.Maximum;
+                numProgressBar.Value = numProgressBar.Maximum;
                 logHandler.log.WriteLine("總共移動了" + num + "個檔案");
                 logHandler.LogEnd();
             }
@@ -157,10 +213,9 @@ namespace FileToFolder
         {
             int num = 0;
             int total = 0;
-            progressBar.Minimum = num;
-            progressBar.Maximum = allFiles.Length;
-            progressBar.Enabled = true;
-            progressBar.Visible = true;
+            numProgressBar.Minimum = num;
+            numProgressBar.Maximum = allFiles.Length;
+            numProgressBar.Enabled = true;
             logHandler.log.WriteLine("以移動的方式處理");
 
             try
@@ -172,9 +227,11 @@ namespace FileToFolder
                         {
                             fileTime = file.LastWriteTime;
                             destinationFile = Path.Combine(Path.Combine(arg.ToPath, fileTime.ToString("yyyyMM")), file.Name);
-                            File.Copy(file.FullName, destinationFile, true);
+                            var cfc = new CustomFileCopier(file.FullName, destinationFile, sizeProgressBar);
+                            cfc.Copy();
+                            //File.Copy(file.FullName, destinationFile, true);
                             num++;
-                            progressBar.Value = ++total;
+                            numProgressBar.Value = ++total;
                         }
                         break;
 
@@ -183,29 +240,24 @@ namespace FileToFolder
                         {
                             fileTime = file.LastAccessTime;
                             destinationFile = Path.Combine(Path.Combine(arg.ToPath, fileTime.ToString("yyyyMM")), file.Name);
-                            File.Copy(file.FullName, destinationFile, true);
+                            var cfc = new CustomFileCopier(file.FullName, destinationFile, sizeProgressBar);
+                            cfc.Copy();
+                            //File.Copy(file.FullName, destinationFile, true);
                             num++;
-                            progressBar.Value = ++total;
+                            numProgressBar.Value = ++total;
                         }
                         break;
 
                     case 2:
-                        foreach (FileInfo file in allFiles)
-                        {
-                            destinationFile = Path.Combine(arg.ToPath, file.Name);
-                            File.Copy(file.FullName, destinationFile, true);
-                            num++;
-                            progressBar.Value = ++total;
-                        }
-                        break;
-
                     case 3:
                         foreach (FileInfo file in allFiles)
                         {
                             destinationFile = Path.Combine(arg.ToPath, file.Name);
-                            File.Copy(file.FullName, destinationFile, true);
+                            var cfc = new CustomFileCopier(file.FullName, destinationFile, sizeProgressBar);
+                            cfc.Copy();
+                            //File.Copy(file.FullName, destinationFile, true);                            
                             num++;
-                            progressBar.Value = ++total;
+                            numProgressBar.Value = ++total;
                         }
                         break;
 
@@ -220,7 +272,7 @@ namespace FileToFolder
             }
             finally
             {
-                progressBar.Value = progressBar.Maximum;
+                numProgressBar.Value = numProgressBar.Maximum;
                 logHandler.log.WriteLine("總共複製了" + num + "個檔案");
                 logHandler.LogEnd();
             }

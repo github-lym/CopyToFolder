@@ -14,8 +14,9 @@ namespace FileToFolder
         public Form1()
         {
             InitializeComponent();
-            progressBar.Visible = false;
-            progressBar.Step = 1;
+            NumProgressBar.Visible = false;
+            NumProgressBar.Step = 1;
+            SizeProgressBar.Visible = false;
         }
 
         /*
@@ -121,7 +122,8 @@ namespace FileToFolder
             //foreach (Control c in this.Controls)
             //    c.Enabled = false;
             WorkOnFiles work = new WorkOnFiles(optionArg);
-            work.ProgressBarControl(progressBar);
+            work.NumProgressBarControl(NumProgressBar);
+            work.SizeProgressBarControl(SizeProgressBar);
 
             //progressBar.Enabled = true;
             //progressBar.Visible = true;
